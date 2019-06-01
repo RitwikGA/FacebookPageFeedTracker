@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
+<link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-exp.min.css">
+<link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+</head>
+<body>
+  
+<div class="loading loading-lg" style='display:none;'></div>
+
+<? if(isScriptBlank()) { ?>
+<div class="container settingsConfig">
+<div class="columns">
+<div class="column col-6">
+<!-- form input control -->
+<? var property = PropertiesService.getScriptProperties(); ?>
+<div class="form-group">
+<label class="form-label" for="appId">App Id</label>
+<input class="form-input" type="text" id="appId" placeholder="App ID" value="<?= property.getProperty('CLIENT_ID') ?>">
+</div>
+</div>
+<div class="column col-6">
+<!-- form input control -->
+<div class="form-group">
+<label class="form-label" for="appSecret">App Secret</label>
+<input class="form-input" type="text" id="appSecret" placeholder="App Secret" value="<?= property.getProperty('CLIENT_SECRET') ?>">
+</div>
+</div>
+<div class="column col-6">
+<!-- form input control -->
+<div class="form-group">
+<label class="form-label" for="sheetName">Sheet Name (For Event Logs)</label>
+<input class="form-input" type="text" id="sheetName" placeholder="SheetName" value="<?= SpreadsheetApp.getActive().getActiveSheet().getSheetName() ?>">
+</div>
+</div>
+<div class="column col-6">
+<!-- form input control -->
+<div class="form-group">
+<label class="form-label" for="gaPropertyId">GA Property ID</label>
+<input class="form-input" type="text" id="gaPropertyId" placeholder="UA-XXXXXXXX-1" value="<?= property.getProperty('GA_PROPERTY_ID') ?>">
+</div>
+</div>
+<div class="column col-12">
+<!-- form input control -->
+<div class="form-group">
+<label class="form-label" for="sheetId">Spreadsheet Id (For Event Logs)</label>
+<input class="form-input" type="text" id="sheetId" placeholder="App Secret" value="<?= SpreadsheetApp.getActive().getId() ?>">
+</div>
+</div>
+<hr>
+<div class="column col-12">
+<button id="saveSettings" class="btn btn-primary" style="width:100%">Save</button>
+</div>
+</div>
+</div>
+<script>$(function(){resizeModal(550,450);})
+
+$('#saveSettings').on('click',function(){
+$(this).addClass('loading')
+var appId = $("#appId").val()
+var appSecret = $("#appSecret").val()
+var sheetName = $("#sheetName").val()
+var gaPropertyId = $("#gaPropertyId").val()
+var sheetId = $("#sheetId").val()
+	
+var scriptObj = {
+appId:appId,
+appSecret:appSecret,
+sheetName:sheetName,
+gaPropertyId:gaPropertyId,
+sheetId:sheetId
+}
+google.script.run.saveSettings(scriptObj)
+
+})
+
+</script>
+<? } else { ?>
+<div class="container authURL">
+<div class="columns">
+<div class="column col-12">
+<span class="label"> <b><a href='<?=getService().getAuthorizationUrl()?>' target='_blank' onclick="$('.loading').show();">
+    Click To Authorize</a></b></span>
+    <span style="margin-left:10px;" class="tooltip tooltip-bottom" data-tooltip="Edit Script Settings">
+    <a onclick="$('.loading').show();google.script.run.saveSettings()" style="cursor:pointer;"><i class="icon icon-edit"></i></a>
+    </span><br />
+</div>
+</div>
+</div>
+<? } ?>
+ <? if(getService().hasAccess()) { ?>
+
+<table class="table table-hover">
+  <thead>
+    <tr>
+      <th>Page</th>
+      <th>Off/On</th>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+<script>
+$(function() {
+$('.loading').show();
+   google.script.run.withSuccessHandler(returnPages).fetchPage()
+});
+
+
+function returnPages(pageObj){
+
+var txt = '';
+var pageObj = pageObj['page_data'].length > 0 ? pageObj['page_data'] : false;
+
+if(pageObj){
+for(var j=0;j<pageObj.length;j++){
+var data = pageObj[j]
+var token = data.access_token
+var pageId = data.id
+var pageName = data.name
+var isChecked = data.status == "Yes" ? 'checked' : '';
+
+txt+= '<tr data-token="'+token+'" data-id="'+pageId+'"><td>'+pageName+'</td><td><div class="form-group">'+
+'<label class="form-switch"><input type="checkbox" '+isChecked+'><i class="form-icon"></i></label></div></td></tr>'
+
+}
+$('table tbody').append(txt)
+}
+
+$('.loading').hide();
+}
+
+$('table tbody').on('change','tr input[type="checkbox"]',function(e){
+var token = $(this).closest("tr").attr('data-token')
+var pageId = $(this).closest("tr").attr('data-id')
+var isOn = $(this).is(':checked')
+if(token && pageId)
+{
+$('.loading').show();
+google.script.run.withSuccessHandler(subscribeStatus).pageSubscribe(pageId, token, isOn)
+}
+})
+
+function subscribeStatus(status){
+alert(status['status'])
+$('.loading').hide();
+}
+
+
+</script>
+
+<? } ?>
+
+<div align="center" class="col-12" style="margin-top:30px;">
+<a href='https://www.digishuffle.com/blogs/track-facebook-like-comment-share-in-real-time-google-analytics/'><img src="https://www.digishuffle.com/wp-content/uploads/2017/06/Logo-Black-3dGraph.png" style="height:40px;width:60px">
+</a><p style="font-size:12px"> Digishuffle - Analytics </p>
+<? if(getService().hasAccess()) { ?>
+<p style='color:green;font-size:12px'>Authorized</p>
+<? } else { ?>
+<p style='color:red;font-size:12px'>Not Authorized</p>
+<? } ?>
+</div>
+
+<script>
+
+function resizeModal(x,y){
+google.script.host.setWidth(x);
+google.script.host.setHeight(y);
+}
+
+</script>
+</body>
+</html>
+
+
